@@ -31,7 +31,6 @@ public class Query extends Thread{
 			Socket socket = new Socket();
 			socket.connect(new InetSocketAddress(host, port), 1000);
 		} catch (Exception e){
-			//e.printStackTrace();
 			status = 2;
 		}
 		
@@ -71,8 +70,6 @@ public class Query extends Thread{
 		try {
 			socket = new DatagramSocket();
 		} catch (SocketException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		}
 		try {
 			InetAddress ipAddress = InetAddress.getByName(host);
@@ -92,7 +89,6 @@ public class Query extends Thread{
 			for(int count = 5; (byte1 = preData[count++]) != 0;)
 				buffer[i++] = (byte) byte1;
 			int challengeInt = Integer.parseInt(new String(buffer).trim());
-		///	System.out.println(little2big(challengeInt));
 			ByteBuffer bBuff = ByteBuffer.allocate(4);
 			bBuff.putInt(challengeInt);
 			
@@ -126,7 +122,6 @@ public class Query extends Thread{
 						values.put(new String(bufferKey).trim(), new String(bufferValue).trim());
 						key.clear();
 						value.clear();
-					//	System.out.print(new String(bufferKey)+" : "+new String(bufferValue));
 					}
 					onKey = !onKey;
 				}
@@ -135,7 +130,7 @@ public class Query extends Thread{
 				else 
 					key.add(b);
 			}
-			//for(String key1 : values.keySet())
+			//for(String key1 : values.keySet()) // Debug values
 			//	System.out.println(key1 + " : "+ values.get(key1));
 			
 			byte[] buffer1 = new byte[1024];
@@ -159,7 +154,6 @@ public class Query extends Thread{
 			}
 			if(playersString.length() != 0)
 				playersString = playersString.substring(0,playersString.length()-1);
-			//System.out.println(playersString);
 		} catch (SocketTimeoutException e) {
 			status = 2;
 		} catch (IOException e) {
