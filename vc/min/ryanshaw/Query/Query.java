@@ -66,24 +66,19 @@ public class Query {
 	 *             If the server cannot be pinged
 	 */
 	public void sendQuery() throws IOException {
-		if(pingServer()) {
-			// Do the actual request
-			sendQueryRequest();
-		} else {
-			throw new IOException("Server can not be pinged");
-		}
+		sendQueryRequest();
 	}
 	
 	/**
 	 * Try pinging the server
 	 * 
-	 * @return <code>true</code> if the server can be reached within one second
+	 * @return <code>true</code> if the server can be reached within 1.5 second
 	 */
-	private boolean pingServer() {
+	public boolean pingServer() {
 		// try pinging the given server
 		try {
 			final Socket socket = new Socket();
-			socket.connect(address, 1000);
+			socket.connect(address, 1500);
 			socket.close();
 			return true;
 		} catch(IOException e) {}
@@ -125,7 +120,7 @@ public class Query {
 	 *             if anything goes wrong during the request
 	 */
 	private void sendQueryRequest() throws IOException {
-		final DatagramSocket socket = new DatagramSocket(200);
+		final DatagramSocket socket = new DatagramSocket();
 		try {
 			final byte[] receiveData = new byte[10240];
 			socket.setSoTimeout(2000);
