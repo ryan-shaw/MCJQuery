@@ -13,14 +13,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Query extends Thread{
-	private String host;
-	private int port;
+	private static String host;
+	private static int port;
 	private static HashMap<String, String> values = new HashMap<String, String>();
 	private String playersString = "";
 	public int status = -1;
 	
 	public Query(String host, int port){
-		this.host = host;
+		this.host = host;	//Ignore how these are accessed.
 		this.port = port;
 	}
 	
@@ -88,16 +88,10 @@ public class Query extends Thread{
 			byte[] preData = receivePacket.getData();
 			int byte1 = -1;
 			int i = 0;
-			ArrayList<Byte> challenge1 = new ArrayList<Byte>();
-			for(int count = 5; (byte1 = preData[count]) != 0; count++)
-				challenge1.add((byte) byte1);
-			byte[] buffer = new byte[challenge1.size()];
-			
-			for(i = 0; i < challenge1.size(); i++){
-				buffer[i] = challenge1.get(i);
-			}
-			
-			int challengeInt = Integer.parseInt(new String(buffer));
+			byte[] buffer = new byte[8];
+			for(int count = 5; (byte1 = preData[count++]) != 0;)
+				buffer[i++] = (byte) byte1;
+			int challengeInt = Integer.parseInt(new String(buffer).trim());
 		///	System.out.println(little2big(challengeInt));
 			ByteBuffer bBuff = ByteBuffer.allocate(4);
 			bBuff.putInt(challengeInt);
