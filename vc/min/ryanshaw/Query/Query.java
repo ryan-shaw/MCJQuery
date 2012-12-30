@@ -89,12 +89,8 @@ public class Query extends Thread{
 			int byte1 = -1;
 			int i = 0;
 			ArrayList<Byte> challenge1 = new ArrayList<Byte>();
-			for(int count = 5; true; count++){
-				byte1 = preData[count];
-				if(byte1 == 0)
-					break;
+			for(int count = 5; (byte1 = preData[count]) != 0; count++)
 				challenge1.add((byte) byte1);
-			}
 			byte[] buffer = new byte[challenge1.size()];
 			
 			for(i = 0; i < challenge1.size(); i++){
