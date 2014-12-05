@@ -5,12 +5,19 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.xbill.DNS.Record;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.SRVRecord;
+import org.xbill.DNS.TextParseException;
+import org.xbill.DNS.Type;
 
 /**
  * Send a query to a given minecraft server and store any metadata and the
@@ -19,6 +26,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Ryan Shaw, Jonas Konrad
  */
 public class Query {
+	public static void main(String[] args){
+		Query query = new Query("p-n.ca", 25565, 0);
+		System.out.println(query.pingServer());
+		try {
+			query.sendQueryRequest();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	/**
 	 * The target address and port
 	 */
@@ -33,6 +49,7 @@ public class Query {
 	 * array containing all online player usernames
 	 */
 	private String[]			onlineUsernames;
+	private InetSocketAddress queryAddress;
 	
 	/**
 	 * Convenience constructor
@@ -43,8 +60,8 @@ public class Query {
 	 * @param port
 	 *            The target port
 	 */
-	public Query(String host, int port) {
-		this(new InetSocketAddress(host, port));
+	public Query(String host, int port, int queryport) {
+		this(new InetSocketAddress(host, queryport), new InetSocketAddress(host, port));
 	}
 	
 	/**
@@ -53,8 +70,12 @@ public class Query {
 	 * @param address
 	 *            The servers IP-address
 	 */
-	public Query(InetSocketAddress address) {
+	public Query(InetSocketAddress queryAddress, InetSocketAddress address) {
 		this.address = address;
+		this.queryAddress = queryAddress;
+		if(queryAddress.getPort() == 0){
+			this.queryAddress = new InetSocketAddress(queryAddress.getHostName(), address.getPort());
+		}
 	}
 	
 	/**
@@ -76,12 +97,28 @@ public class Query {
 	 */
 	public boolean pingServer() {
 		// try pinging the given server
+		String service = "_minecraft._tcp." + address.getHostName();
+		try {
+			Record[] records = new Lookup(service, Type.SRV).run();
+			if(records != null)
+				for(Record record : records){
+					SRVRecord srv = (SRVRecord)record;
+					String hostname = srv.getTarget().toString();
+					int port = srv.getPort();
+					System.out.println(hostname + ":"+ port);
+					address = new InetSocketAddress(hostname, port);
+					queryAddress = new InetSocketAddress(hostname, port);
+				}
+		} catch (TextParseException e1) {
+			e1.printStackTrace();
+		}
 		try {
 			final Socket socket = new Socket();
 			socket.connect(address, 1500);
 			socket.close();
 			return true;
-		} catch(IOException e) {}
+		} catch(IOException e) {
+		}
 		return false;
 	}
 	
@@ -120,22 +157,27 @@ public class Query {
 	 *             if anything goes wrong during the request
 	 */
 	private void sendQueryRequest() throws IOException {
+		InetSocketAddress local = queryAddress;
+		if(queryAddress.getPort() == 0){
+			local = new InetSocketAddress(queryAddress.getAddress(), address.getPort());
+		}
+		System.out.println(local);
 		final DatagramSocket socket = new DatagramSocket();
 		try {
 			final byte[] receiveData = new byte[10240];
 			socket.setSoTimeout(2000);
-			sendPacket(socket, address, 0xFE, 0xFD, 0x09, 0x01, 0x01, 0x01, 0x01);
+			sendPacket(socket, local, 0xFE, 0xFD, 0x09, 0x01, 0x01, 0x01, 0x01);
 			final int challengeInteger;
 			{
 				receivePacket(socket, receiveData);
 				byte byte1 = -1;
 				int i = 0;
-				byte[] buffer = new byte[8];
+				byte[] buffer = new byte[11];
 				for(int count = 5; (byte1 = receiveData[count++]) != 0;)
 					buffer[i++] = byte1;
 				challengeInteger = Integer.parseInt(new String(buffer).trim());
 			}
-			sendPacket(socket, address, 0xFE, 0xFD, 0x00, 0x01, 0x01, 0x01, 0x01, challengeInteger >> 24, challengeInteger >> 16, challengeInteger >> 8, challengeInteger, 0x00, 0x00, 0x00, 0x00);
+			sendPacket(socket, local, 0xFE, 0xFD, 0x00, 0x01, 0x01, 0x01, 0x01, challengeInteger >> 24, challengeInteger >> 16, challengeInteger >> 8, challengeInteger, 0x00, 0x00, 0x00, 0x00);
 			
 			final int length = receivePacket(socket, receiveData).getLength();
 			values = new HashMap<String, String>();
