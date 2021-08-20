@@ -1,2 +1,1 @@
-MCJQuery
-========
+# MCJQuery
